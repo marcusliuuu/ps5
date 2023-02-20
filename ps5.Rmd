@@ -1,0 +1,253 @@
+---
+title: "Problem Set Five"
+output: html_document
+date: "2023-02-19"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load and Check Data:
+
+```{r, message=FALSE}
+library(tidyverse)
+gapminder <- read_delim("gapminder.csv.bz2")
+```
+Dimensions of Data:
+```{r}
+dim(gapminder)
+```
+We have 13,055 rows and 25 columns. 
+
+Sample of Data:
+```{r}
+gapminder %>% 
+  sample_n(5) %>% 
+  knitr::kable()
+```
+From looking at this sample, the data looks good.
+
+### Descriptive Statistics:
+1)
+```{r}
+gapminder %>%
+  group_by(iso2) %>%
+  summarize(n = n_distinct(name)) %>% 
+  nrow()
+
+```
+There are 249 countries in iso2.
+```{r}
+gapminder %>%
+  group_by(name) %>%
+  summarize(n = n_distinct(name)) %>% 
+  nrow()
+```
+There are 250 countries in name.
+```{r}
+gapminder %>%
+  group_by(iso3) %>%
+  summarize(n = n_distinct(name)) %>% 
+  nrow
+```
+There are 253 countries in iso3.
+
+2) 
+```{r}
+gapminder %>% 
+  filter(!is.na(iso2)) %>% 
+  group_by(name) %>%
+  summarize(n = n_distinct(iso2)) %>% 
+  arrange(n)
+  
+```
+```{r}
+gapminder %>% 
+  filter(!is.na(iso3)) %>% 
+  group_by(name) %>%
+  summarize(n = n_distinct(iso3)) %>% 
+  arrange((n))
+  
+```
+There are no countries that correspond to more than 1 iso2 or iso3 code.
+
+3)
+```{r}
+gapminder %>% 
+  filter(!is.na(time)) %>% 
+  summarize(min = min(time), max = max(time)) %>% 
+  pull(min, max)
+```
+The minimum year is 1960, and the maximum year is 2019.
+
+### C02 Emissions
+1)
+```{r}
+gapminder %>% 
+  filter(is.na(co2)) %>% 
+  group_by(time) %>% 
+  count(time)
+```
+```{r}
+gapminder %>% 
+  filter(is.na(co2_PC)) %>% 
+  group_by(time) %>% 
+  count(time)
+```
+
+1960 is the year with the most missing data.
+
+2)
+```{r} 
+countries <- c("United States of America", "China", "Armenia", "American Samoa", "India")
+co2_countries <- gapminder %>% 
+  filter(name %in% countries) %>% 
+  select(time, name, co2)
+
+ggplot(co2_countries, aes(x = time, y = co2, color = name)) +
+  geom_line() +
+  labs(title = "Total CO2 Emissions Over Time",
+       x = "Year",
+       y = "CO2 Emissions (million metric tons)",
+       color = "Country") +
+  theme_bw()
+```
+From the plot, we can see that the United States had the highest CO2 emissions in the earlier years, followed by China which surpassed the US in the mid-2000s. India's CO2 emissions have been steadily increasing over time
+
+3)
+```{r} 
+countries <- c("United States of America", "China", "Armenia", "American Samoa", "India")
+co2_countries <- gapminder %>% 
+  filter(name %in% countries) %>% 
+  select(time, name, co2_PC)
+
+ggplot(co2_countries, aes(x = time, y = co2_PC, color = name)) +
+  geom_line() +
+  labs(title = "Total CO2 Emissions Over Time",
+       x = "Year",
+       y = "CO2 Emissions (million metric tons)",
+       color = "Country") +
+  theme_bw()
+```
+From the plot, we can see that the United States has consistently had the highest CO2 emissions per capita, followed by Russia and Japan. China and India have much lower CO2 emissions per capita, although both have seen an increase over time.
+
+4)
+```{r}
+co2_continent <- gapminder %>% 
+  group_by(region) %>% 
+  summarize(avg_co2_PC = mean(co2_PC, na.rm = TRUE))
+
+co2_continent
+```
+We can see from this that Europe, Asia, and the Americas all had high average co2 emissions per capita, and Africa had a low one.
+
+5)
+```{r}
+co2_year <- gapminder %>% 
+  filter(time %in% c(1960, 2016))
+
+co2_continent_year <- co2_year %>% 
+  group_by(region, time) %>% 
+  summarize(avg_co2_PC = mean(co2_PC, na.rm = TRUE))
+
+ggplot(co2_continent_year, aes(x = region, y = avg_co2_PC, fill = factor(time))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average CO2 Emissions per Capita Across Continents in 1960 and 2016",
+       x = "Continent",
+       y = "Average CO2 Emissions per Capita (metric tons)",
+       fill = "Year") +
+  theme_bw()
+```
+
+### GDP per capita
+
+1)
+```{r}
+co2_1960 <- gapminder %>% 
+  filter(time == 1960)
+
+country_sizes <- co2_1960 %>% 
+  select(name, totalPopulation) %>% 
+  distinct()
+
+
+ggplot(co2_1960, aes(x = GDP_PC, y = lifeExpectancy)) +
+  geom_point(aes(size = totalPopulation, color = region)) +
+  scale_size(range = c(2, 10)) +
+  labs(x = "GDP per capita (1960)",
+       y = "Life expectancy (1960)",
+       title = "GDP per capita vs. Life expectancy by country (1960)",
+       subtitle = "Point size indicates country size, color indicates continent") +
+  theme_bw()
+
+```
+
+Thus plot shows a clear relationship between GDP per Capita and Life Expectancy, and how places with a higher GDP have a higher life expactancy.
+
+2)
+
+```{r}
+co2_2019 <- gapminder %>% 
+  filter(time == 2019)
+
+country_sizes <- co2_2019 %>% 
+  select(name, totalPopulation) %>% 
+  distinct()
+
+
+ggplot(co2_2019, aes(x = GDP_PC, y = lifeExpectancy)) +
+  geom_point(aes(size = totalPopulation, color = region)) +
+  scale_size(range = c(2, 10)) +
+  labs(x = "GDP per capita (1960)",
+       y = "Life expectancy (1960)",
+       title = "GDP per capita vs. Life expectancy by country (2019)",
+       subtitle = "Point size indicates country size, color indicates continent") +
+  theme_bw()
+
+```
+
+3)
+These plots suggest that the world has experienced significant economic and social development over the past 60 years.
+
+4)
+```{r}
+averages <- gapminder %>% 
+  filter(!is.na(lifeExpectancy)) %>% 
+  filter(time %in% c(1960, 2019)) %>% 
+  group_by(region, time) %>% 
+  summarize(avg_life_expectancy = mean(lifeExpectancy))
+
+
+averages
+```
+In 1960, the average life expectancy was highest in Europe and lowest in Africa. By 2019, the average life expectancy had increased for all continents, with Europe still having the highest average and Africa still having the lowest.
+
+5)
+```{r}
+growth <- gapminder %>%
+  filter(time == 1960 | time == 2019) %>%
+  group_by(region) %>%
+  summarize(avg_growth = ((lifeExpectancy[time == 2019] - lifeExpectancy[time == 1960]) / lifeExpectancy[time == 1960]) * 100)
+
+growth_ordered <- growth[order(growth$avg_growth),]
+
+growth_ordered
+
+```
+The results show that all continents experienced an increase in life expectancy between 1960 and 2019, with the highest growth rates seen in Asia, followed by Africa and the Americas. Europe and Oceania had the lowest growth rates.
+
+6)
+```{r}
+data_1960 <- subset(gapminder, time == 1960, select = c("name", "region", "GDP_PC"))
+data_2019 <- subset(gapminder, time == 2019, select = c("name", "region", "GDP_PC"))
+
+hist(data_2019$GDP_PC, col = "red", breaks = 20, xlim = c(0, 200000))
+hist(data_1960$GDP_PC, col = "blue", breaks = 20, add = TRUE)
+
+
+legend("topright", c("1960", "2019"), fill = c("blue", "red"))
+
+```
+
+
+This took me 7 hours.
